@@ -2,3 +2,12 @@
 .terraform/
 *.tfstate
 *.tfstate.backup
+
+# Python virtualenv
+.venv/
+
+# VSCode
+.vscode/
+
+# Otros
+.docker/
