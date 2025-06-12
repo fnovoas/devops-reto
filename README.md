@@ -4,7 +4,28 @@ Este repositorio contiene una pequeña aplicación en Flask y las instrucciones 
 
 ## Requisitos
 
-- Docker instalado (y ejecutándose), preferiblemente en Linux.
+- **Docker** instalado (y funcionando): probado en Ubuntu.  
+- **Terraform** (v1.x o superior) instalado:  
+  ```bash
+  terraform version
+  # Debe mostrar Terraform v1.x.x
+   ```
+
+* Un **Personal Access Token (PAT)** de GitHub “classic” con scopes:
+
+  * `write:packages`
+  * `read:packages`
+* Variables de entorno para Terraform:
+
+  ```bash
+  export TF_VAR_username="usuario_github"
+  export TF_VAR_pat="ghp_XXXXXXXXXXXXXXXXXXXX"
+  ```
+
+  De este modo el módulo `docker_push` podrá autenticarse y subir la imagen.  
+
+Antes de ejecutar `terraform init && terraform apply`, toca tener Docker, Terraform y haber exportado esas variables de entorno.  
+
 
 ## Construir la imagen
 En la terminal, ejecutamos:  
