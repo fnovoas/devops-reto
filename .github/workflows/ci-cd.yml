@@ -1,60 +1,79 @@
 # GitHub Actions CI/CD Pipeline
-name: CI/CD Pipeline
+name: CI/CD Pipeline # pipeline principal para CI/CD
 
-
-permissions: #permitimos escribir paquetes
+permissions: # permitimos escribir paquetes
   contents: read
   packages: write
 
-# Se dispara en cada push a la rama main
 on:
   push:
     branches:
-      - main
+      - main # se dispara en cada push a la rama main
 
 jobs:
   # 1. Validación de código (lint)
   lint:
-    name: Lint Python
+    name: Lint Python # chequeo de estilo con flake8
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code #clonar el repositorio en el runner
+      - name: Checkout code # clonar el repositorio
         uses: actions/checkout@v3
 
-      - name: Setup Python #instalar Python
+      - name: Setup Python # instalar Python 3.9
         uses: actions/setup-python@v3
         with:
           python-version: '3.9'
 
-      - name: Install flake8 #para análisis de estilo y errores
+      - name: Install flake8 # instalar linter
         run: |
           python -m pip install --upgrade pip
           pip install flake8
 
-      - name: Run flake8 #correr flake8 sobre el archivo principal
+      - name: Run flake8 # ejecutar linter en app.py
         run: flake8 app.py
 
-  # 2. Build & Push de la imagen Docker
-  build-and-push:
-    name: Build & Push Docker image 
-    needs: lint #correr solo si lint pasó sin errores
+  # 2. Build de la imagen Docker
+  build-image:
+    name: Build Docker image # compilar la imagen
+    needs: lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code #clonar otra vez el repositorio (cada job tiene workspace limpio)
+      - name: Checkout code # clonar de nuevo
         uses: actions/checkout@v3
 
-      - name: Log in to GHCR #autenticación en GitHub Container Registry
+      - name: Log in to GHCR # autenticación en GHCR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}       # el usuario de GitHub
+          username: ${{ github.actor }} # el usuario de GitHub
           password: ${{ secrets.GITHUB_TOKEN }} # token automático
 
-      - name: Build and push #construir la imagen y subir al registry
+      - name: Build image # build sin push
         uses: docker/build-push-action@v4
         with:
-          context: .                          # contexto de build: root del repo
-          push: true                         # sube la imagen tras build
-          tags: ghcr.io/${{ github.repository }}:latest # etiqueta: ghcr.io/<usuario>/<repo>:latest
+          context: . # contexto de build: root del repo
+          push: false          # solo build, no push
+          tags: ghcr.io/${{ github.repository }}:latest
+
+  # 3. Deploy (push) de la imagen
+  deploy-image:
+    name: Deploy Docker image # subir la imagen al registry
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code # clonar nuevamente
+        uses: actions/checkout@v3
+
+      - name: Log in to GHCR # autenticación en GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image # push de la imagen compilada
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true           # aquí sí hacemos el push
+          tags: ghcr.io/${{ github.repository }}:latest
